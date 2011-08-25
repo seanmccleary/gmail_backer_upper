@@ -129,7 +129,7 @@ foreach( $backup_files as $backup_file ) {
 		
 		++$chunk;
 
-		$contents .= fread($handle, $config['file_chunk_size']);
+		$contents = fread($handle, $config['file_chunk_size']);
 		
 		$filename = $backup_file;
 		if( $is_chunked ) {
