@@ -88,7 +88,7 @@ if( !@include_once('Net/SMTP.php') ) {
 
 // Now let's get down to the real meat of the script.
 
-$date = date(DATE_RFC850);
+$date = date(DATE_ISO8601);
 
 print "*** PROGRAM STARTED AT $date\n";
 $config = parse_ini_file($config_file);
@@ -193,5 +193,5 @@ foreach( $backup_files as $backup_file ) {
 
 
 
-print '*** PROGRAM ENDED AT ' . date(DATE_RFC850) . "\n";
+print '*** PROGRAM ENDED AT ' . date(DATE_ISO8601) . "\n";
 exit(0);

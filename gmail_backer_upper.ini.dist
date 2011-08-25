@@ -7,7 +7,7 @@ emails_to = youremail@address.com
 ; The title of the emails that'll be created. You can use the following variables 
 ; %1s = date
 ; %2s = file name
-email_title = '%1s: Automated file backup - %2s'
+email_title = '%1s: %2s'
 
 ; Enter your SMTP information here.  i.e. smtp.gmail.com to use Gmail's
 smtp_server = localhost
