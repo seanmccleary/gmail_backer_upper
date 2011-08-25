@@ -1,0 +1,24 @@
+; From whom should the emails be sent?
+emails_from = Automated Backups <email@address.com>
+
+; To whom should the emails be sent?
+emails_to = youremail@address.com
+
+; The title of the emails that'll be created. %s will be replaced by the date.
+email_title = '%s: Automated file backup'
+
+; Enter your SMTP information here.  i.e. smtp.gmail.com to use Gmail's
+smtp_server = localhost
+
+; On which port will the SMTP server run? Generally 25, or 587 if using SSL.
+smtp_port = 25
+
+; Uncomment the following if your SMTP server requires a username 
+; (Gmail reqiure your full gmail email address.) 
+;smtp_username = 
+
+; Uncomment the following if your SMTP server requries a password (Gmail's does)
+;smtp_password = 
+
+; Whether or not we're doing a secure SMTP connection. (Gmail requires it.)
+smtp_ssl = false
