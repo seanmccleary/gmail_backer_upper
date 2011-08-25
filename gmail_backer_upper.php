@@ -1,24 +1,34 @@
 <?php
-/*
- * gmail_backer_upper
- * By Sean McCleary <sean@seanmccleary.info>
+/**
+ * Gmail Backer Upper, a script to back up files to Gmail
  * 
- * This is freeware.  Do what you will with it.  
- * I make no promises. Don't come a-cryin'.
+ * This program is meant to be run from a scheduled job (like a cronjob) 
+ * to send files to Gmail (or, in theory, any other mail server, but 
+ * Gmail's what I've got in mind, there pal.)
+ * 
+ * @author Sean McCleary <sean@seanmccleary.info>
+ * @version 1.0
+ * @copyright None. It's freeware. Go nuts.
+ * @see http://www.seanmccleary.info/fossils/gmail_backer_upper
  */
+
 ini_set('memory_limit', '-1');
 
 $usage = "Usage: php {$_SERVER['PHP_SELF']} [-c CONFIG_FILE] FILE(S)";
 
-// Copy these to another variable because we'll start removing some
-// as we're finished with them.
+// Copy the command line parameters to to another variable because we'll 
+// start removing them as we're finished with them.
 $params = $argv;
 
 // In fact, we don't need the first one, which is the name of the executing script.
 unset($params[0]);
 
 // OK first try and fish out whether or not there was a config file specified
+// Did they include the -c option on the command line?
 if( $flag_index = array_search('-c', $params) ) {
+	
+	// Well I'll be a son of a gun, they did. The next parameter must be
+	// the name of the config file.
 	$config_file = $params[$flag_index + 1];
 	
 	if( !file_exists($config_file) ) {
@@ -27,12 +37,18 @@ if( $flag_index = array_search('-c', $params) ) {
 		exit(1);
 	}
 	
+	// Remove those two parameters from the collection we're working with
 	unset($params[$flag_index + 1]);
 	unset($params[$flag_index]);	
 }
+
+// Well OK, maybe they didn't explicitly point us to the config file, but one exists
+// with the default name.
 else if( file_exists('gmail_backer_upper.ini') ) {
 	$config_file = 'gmail_backer_upper.ini';
 }
+
+// OK, we have to bail out becuase we couldn't find a config file.
 else {
 	fwrite(STDERR, "Whoa there, you didn't specify a config file, and I couldn't find one in the current directory!\n\n"
 		. "$usage\n");
@@ -89,7 +105,6 @@ foreach($params as $param) {
 	$backup_files = array_merge($backup_files, glob($param));
 }
 
-
 // Our headers
 $headers = array(
 	'From' => $config['emails_from'],
@@ -131,7 +146,13 @@ foreach( $backup_files as $backup_file ) {
 
 		$contents = fread($handle, $config['file_chunk_size']);
 		
-		$filename = $backup_file;
+		if( $short_filename = strrchr($backup_file, '/') ) {
+			$filename = substr($short_filename, 1);
+		}
+		else {
+			$filename = $backup_file;
+		}
+		
 		if( $is_chunked ) {
 			$filename .= " (Part $chunk / $total_chunks)";
 		}
@@ -153,7 +174,7 @@ foreach( $backup_files as $backup_file ) {
 		$body = $mime->get();
 		
 		$mail = &Mail::factory('smtp', $connection_info);
-
+		
 		$result = $mail->send($config['emails_to'], $mime_headers, $body);
 		
 		if( PEAR::isError($result) ) {
