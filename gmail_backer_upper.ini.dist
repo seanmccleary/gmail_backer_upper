@@ -29,3 +29,8 @@ smtp_ssl = false
 ; If you're backing up a file which is larger than that, the program will
 ; split it into chunks.  This is the size, in bytes, of the chunks.
 file_chunk_size = 20971520
+
+; If you want it to direct output to the log instead of standard output, 
+; specify it here. (Make sure it runs as a user who has permission to write
+; to that log!)
+;logfile = /var/log/gmail_backer_upper.log

@@ -32,9 +32,7 @@ if( $flag_index = array_search('-c', $params) ) {
 	$config_file = $params[$flag_index + 1];
 	
 	if( !file_exists($config_file) ) {
-		fwrite(STDERR, "Uh, couldn't find {$params[2]} ... you sure it exists?\n\n"
-			. "$usage\n");
-		exit(1);
+		output("Uh, couldn't find {$params[2]} ... you sure it exists?\n\n$usage\n", 1);
 	}
 	
 	// Remove those two parameters from the collection we're working with
@@ -50,50 +48,61 @@ else if( file_exists('gmail_backer_upper.ini') ) {
 
 // OK, we have to bail out becuase we couldn't find a config file.
 else {
-	fwrite(STDERR, "Whoa there, you didn't specify a config file, and I couldn't find one in the current directory!\n\n"
-		. "$usage\n");
-	exit(1);	
+	output("Whoa there, you didn't specify a config file, and I couldn't find one in the current directory!\n\n$usage\n", 1);
 }
+
+// Parse that config file!
+$config = parse_ini_file($config_file);
 
 // Make sure they've told us which files to back up
 if( count($params) == 0 ) {
-	fwrite(STDERR, "You gotta tell us which files to back up, here, pal! (Wildcards accepted!)\n\n"
-		. "$usage\n");
-	exit(1);
+	output("You gotta tell us which files to back up, here, pal! (Wildcards accepted!)\n\n$usage\n", 1);
 }
 
 // Make sure the PEAR package for MIME emails is installed
 if( !@include_once('Mail/mime.php') ) { 
-	fwrite(STDERR, "Oh, my! I'm sorry, this program requires the Mail_Mime PEAR package!\n"
+	output("Oh, my! I'm sorry, this program requires the Mail_Mime PEAR package!\n"
 		. "If you're the kind of person who wields that kind of power, you\n"
-		. "could install it with a simpe: sudo pear install Mail_Mime\n\n");
-	exit(1);	
+		. "could install it with a simpe: sudo pear install Mail_Mime\n\n",
+		1);
 };
 
 // Make sure the PEAR package for Mail is installed
 if( !@include_once('Mail.php') ) { 
-	fwrite(STDERR, "D'oh! This program requires the Mail PEAR package!\n"
+	output("D'oh! This program requires the Mail PEAR package!\n"
 		. "If you're the kind of person who wields that kind of power, you\n"
-		. "could install it with a simpe: sudo pear install Mail\n\n");
-	exit(1);	
+		. "could install it with a simpe: sudo pear install Mail\n\n",
+		1);
 };
 
 // Make sure the PEAR package for SMTP is installed
 if( !@include_once('Net/SMTP.php') ) { 
-	fwrite(STDERR, "D'oh! This program requires the Net_SMTP PEAR package!\n"
+	output("D'oh! This program requires the Net_SMTP PEAR package!\n"
 		. "If you're the kind of person who wields that kind of power, you\n"
-		. "could install it with a simpe: sudo pear install Net_SMTP\n\n");
-	exit(1);	
+		. "could install it with a simpe: sudo pear install Net_SMTP\n\n",
+		1);
 };
+
+// How about a log file?  Did they specify one?
+if( !empty($config['logfile']) ) {
+
+	// Yup. Let's see if they can actually write to it
+	if( !($handle = @fopen($config['logfile'], 'a')) ) {
+		output("Can't write to log file {$config['logfile']}\n", 1);
+	}
+	
+	fclose($handle);
+	
+}
 
 // Now let's get down to the real meat of the script.
 
 $date = date(DATE_ISO8601);
 
-print "*** PROGRAM STARTED AT $date\n";
-$config = parse_ini_file($config_file);
+output("*** PROGRAM STARTED AT $date\n");
 
-print "Creating the email...\n";
+
+output("Creating the email...\n");
 
 $backup_files = array();
 foreach($params as $param) {
@@ -159,7 +168,7 @@ foreach( $backup_files as $backup_file ) {
 		
 		$headers['Subject'] = sprintf($config['email_title'], $date, $filename);
 		
-		print "\t...mailing $filename...";
+		output("\t...mailing $filename...");
 		
 		$mime = new Mail_mime();
 		
@@ -179,19 +188,42 @@ foreach( $backup_files as $backup_file ) {
 		
 		if( PEAR::isError($result) ) {
 			// Uh oh, couldn't send the email for some reason.
-			print "\n";
-			fwrite(STDERR, 'Unable to send email:' . $result->getMessage() . "\n");
-			exit(1);
+			output("\nUnable to send email: " . $result->getMessage() . "\n", 1);
 		}
 		else {
-			print "done\n";
+			output("done\n");
 		}
 	}
 }
 
+output('*** PROGRAM ENDED AT ' . date(DATE_ISO8601) . "\n", 0);
 
-
-
-
-print '*** PROGRAM ENDED AT ' . date(DATE_ISO8601) . "\n";
-exit(0);
+/**
+ * Display some output, either to a log file, stdout, or stderr
+ * @param string $message The text to be displayed.
+ * @param int $exit_code What exit code to end with, or null if we shouldn't exit.
+ */
+function output($message, $exit_code = null) {
+	
+	global $config;
+	
+	$close_after = true;
+	
+	if( 
+		empty($config['logfile'])
+		|| !($handle = @fopen($config['logfile'], 'a'))
+	) {
+		$handle = ($exit_code !== null && $exit_code == 1 ? STDERR : STDOUT);
+		$close_after = false;	
+	}
+	
+	fwrite($handle, $message);
+	
+	if( $close_after)  {
+		fclose($handle);
+	}
+	
+	if( $exit_code !== null ) {
+		exit($exit_code);
+	}
+}
