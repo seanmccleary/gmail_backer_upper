@@ -89,32 +89,14 @@ foreach($params as $param) {
 	$backup_files = array_merge($backup_files, glob($param));
 }
 
-$body = "Your backed up files from $date\n\n";
 
-$mime = new Mail_mime();
-
-foreach( $backup_files as $backup_file ) {
-	
-	print "\t...attaching {$backup_file}...";
-	
-	$mime->addAttachment($backup_file);
-	
-	$body .= "\t{$backup_file}\n";
-	
-	print "done\n";
-}
-$mime->setTXTBody($body);
-$body = $mime->get();
-
-// OK set up our headers
+// Our headers
 $headers = array(
 	'From' => $config['emails_from'],
-	'To' => $config['emails_to'],
-	'Subject' => sprintf($config['email_title'], $date)
+	'To' => $config['emails_to']
 );
-$headers = $mime->headers($headers);
 
-// OK, set up our connection info array
+// Our connection info
 $connection_info['driver'] = 'smtp';
 $connection_info['host'] = $config['smtp_server'];
 $connection_info['port'] = $config['smtp_port'];
@@ -126,21 +108,70 @@ if( isset($config['smtp_password']) ) {
 }
 $connection_info['auth'] = ( isset($config['smtp_ssl']) && $config['smtp_ssl'] );
 
-$mail = &Mail::factory('smtp', $connection_info);
+// Now loop through the files and send them
+foreach( $backup_files as $backup_file ) {
+	
+	$handle = fopen($backup_file, "rb");
+	$contents = '';
+	
+	$filesize = filesize($backup_file);
+	if( $filesize > $config['file_chunk_size' ] ) {
+		$is_chunked = true;
+		$total_chunks = ceil($filesize / $config['file_chunk_size']);
+	}
+	else {
+		$is_chunked = false;
+	}
+	$chunk = 0;
+	
+	
+	while (!feof($handle)) {
+		
+		++$chunk;
 
-print "Sending...";
-$result = $mail->send($config['emails_to'], $headers, $body);
-
-
-if( PEAR::isError($result) ) {
-	// Uh oh, couldn't send the email for some reason.
-	print "\n";
-	fwrite(STDERR, 'Unable to send email:' . $result->getMessage() . "\n");
-	exit(1);
+		$contents .= fread($handle, $config['file_chunk_size']);
+		
+		$filename = $backup_file;
+		if( $is_chunked ) {
+			$filename .= " (Part $chunk / $total_chunks)";
+		}
+		
+		$headers['Subject'] = sprintf($config['email_title'], $date, $filename);
+		
+		print "\t...mailing $filename...";
+		
+		$mime = new Mail_mime();
+		
+		$mime->setTXTBody('');
+	
+		$mime->addAttachment($contents, 'application/octet-stream', 
+			$backup_file . ($is_chunked ? '.' . sprintf('%03d', $chunk) : ''), 
+			false);
+			
+		$mime_headers = $mime->headers($headers);
+	
+		$body = $mime->get();
+		
+		$mail = &Mail::factory('smtp', $connection_info);
+		print "\n";
+		continue;
+		$result = $mail->send($config['emails_to'], $mime_headers, $body);
+		
+		if( PEAR::isError($result) ) {
+			// Uh oh, couldn't send the email for some reason.
+			print "\n";
+			fwrite(STDERR, 'Unable to send email:' . $result->getMessage() . "\n");
+			exit(1);
+		}
+		else {
+			print "done\n";
+		}
+	}
 }
-else {
-	print "done\n";
-}
+
+
+
+
 
 print '*** PROGRAM ENDED AT ' . date(DATE_RFC850) . "\n";
 exit(0);

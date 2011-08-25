@@ -4,8 +4,10 @@ emails_from = Automated Backups <email@address.com>
 ; To whom should the emails be sent?
 emails_to = youremail@address.com
 
-; The title of the emails that'll be created. %s will be replaced by the date.
-email_title = '%s: Automated file backup'
+; The title of the emails that'll be created. You can use the following variables 
+; %1s = date
+; %2s = file name
+email_title = '%1s: Automated file backup - %2s'
 
 ; Enter your SMTP information here.  i.e. smtp.gmail.com to use Gmail's
 smtp_server = localhost
@@ -22,3 +24,8 @@ smtp_port = 25
 
 ; Whether or not we're doing a secure SMTP connection. (Gmail requires it.)
 smtp_ssl = false
+
+; Chunk size.  Most mail servers will only accept emails up to a maximum size.
+; If you're backing up a file which is larger than that, the program will
+; split it into chunks.  This is the size, in bytes, of the chunks.
+file_chunk_size = 20971520
