@@ -153,8 +153,7 @@ foreach( $backup_files as $backup_file ) {
 		$body = $mime->get();
 		
 		$mail = &Mail::factory('smtp', $connection_info);
-		print "\n";
-		continue;
+
 		$result = $mail->send($config['emails_to'], $mime_headers, $body);
 		
 		if( PEAR::isError($result) ) {
