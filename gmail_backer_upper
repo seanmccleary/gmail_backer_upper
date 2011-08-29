@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 /**
  * Gmail Backer Upper, a script to back up files to Gmail
